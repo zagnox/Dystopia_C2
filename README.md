@@ -3,6 +3,24 @@ Python framework for usage with Cobalt Strike's External C2 specification as des
 
 The primary design goal is to be a very modular implementation of the external c2 spec that provides enough abstraction to easily implement C2 channels for Cobalt Strike. Ideally, all a user would have to do is create a `transport` module, an `encoder` module, and populate a configuration file to implement a new channel.
 
+
+## S3 Transport Configuration
+
+You'll need to do several configuration changes before getting up and running. You'll need to:
+
+1. Create an AWS Account if you haven't already (https://portal.aws.amazon.com/billing/signup#/start)
+2. Create an IAM user whose only access is to S3 buckets, and generate secret/access key pair for them (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)
+3. Create an S3 bucket, and note the name.
+4. In `builds/client/s3/s3_client.py`, change `AWS_SECRET_KEY` and `AWS_ACCESS_KEY` to those generated in 2. Change `bucketName` to the bucket created in 3.
+5. In `builds/server/utils/transports/transport_s3.py` make the same changes as you did in 4.
+6. Compile your DLL by: `cd builds/client/s3 && ./compile_dll.sh`
+7. Start your Cobalt Strike Team server and connect withthe Cobalt Strike Client
+8. Load the `start_externalc2.cna` script from your CS client.
+9. Copy this repo to your team server, then execute the server by `cd builds/server/ && ./s3_server.py`
+10. Distribute your executable from 6 to the host and execute. You should see a connection back from the team server.
+
+Link to video demo: LINK_GOES_HERE
+
 ## Architecture
 This project consists of three main parts:
  - Builder (not yet implemented)

