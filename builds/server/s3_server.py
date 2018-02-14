@@ -105,7 +105,6 @@ def main():
 	# Need to set up the new incoming   #
 	# connection logic here for sorting #
 	#####################################
-	# Shitty data store for beacons
 	beacons = {}
 	try:
 		while True:
