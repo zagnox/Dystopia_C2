@@ -56,7 +56,8 @@ def loadStager(sock, beaconId):
 	# Rrieve the metadata we need to relay back to the server
 	if config.verbose:
 		print commonUtils.color("Awaiting metadata response from client")
-	metadata = commonUtils.retrieveData(beaconId)
+	# Only one response, so this should be the first element of the array
+	metadata = commonUtils.retrieveData(beaconId)[0]
 
 	# Send the metadata frame to the external_c2 server
 	if config.verbose:

