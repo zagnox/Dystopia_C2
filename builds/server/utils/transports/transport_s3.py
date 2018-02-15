@@ -2,6 +2,7 @@ import boto3
 from botocore.exceptions import ClientError
 from time import sleep
 import uuid
+from pprint import pprint
 
 # CS-S3-Agent user credentials with full access to S3
 # Instead of hardcoding, probably should hard-code an encryption
@@ -10,7 +11,7 @@ import uuid
 AWS_SECRET_KEY = 'YOUR_SECRET_KEY'
 AWS_ACCESS_KEY = 'YOUR_ACCESS_KEY'
 s3 = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
-bucketName = 'BUCKETNAME'
+bucketName = 'YOUR_S3BUCKET'
 taskKeyName = 'TaskForYou'
 respKeyName = 'RespForYou'
 
@@ -25,22 +26,24 @@ def retrieveData(beaconId):
     keyName = "{}:{}".format(beaconId, respKeyName)
     while True:
         try:
-            resp = s3.list_objects(Bucket=bucketName)
+            resp = s3.list_objects(Bucket=bucketName, Prefix=keyName)
             objects = resp['Contents']
-            taskResponses = []
-            for obj in objects:
-                if keyName in obj['Key']:
+            if objects:
+                taskResponses = []
+                for obj in objects:
                     resp = s3.get_object(Bucket=bucketName, Key=obj['Key'])
                     msg = resp['Body'].read()
                     s3.delete_object(Bucket=bucketName, Key=obj['Key'])
                     taskResponses.append(msg)
-            if taskResponses:
                 return taskResponses
         except ClientError as e:
             if e.response['Error']['Code'] == 'NoSuchKey':
                 sleep(5)
             else:
                 raise e
+        except KeyError as e:
+            # No objects returned, thus wait.
+            sleep(5)
 
 def fetchNewBeacons():
     """

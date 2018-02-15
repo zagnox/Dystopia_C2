@@ -19,7 +19,7 @@ You'll need to do several configuration changes before getting up and running. Y
 9. Copy this repo to your team server, then execute the server by `cd builds/server/ && ./s3_server.py`
 10. Distribute your executable from 6 to the host and execute. You should see a connection back from the team server.
 
-Link to video demo: LINK_GOES_HERE
+Link to video demo: https://youtu.be/wzruD7LPZp0
 
 ## Architecture
 This project consists of three main parts:
