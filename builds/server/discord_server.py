@@ -4,11 +4,9 @@ import argparse
 from utils import commonUtils
 from utils.encoders import encoder_base64
 from time import sleep
-import configureStage
 import establishedSession
 import config
 from threading import Thread
-import uuid
 
 # Discord bot token
 DISCORD_TOKEN = 'YOUR_DISCORD_BOT_TOKEN'

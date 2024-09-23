@@ -1,7 +1,5 @@
 import discord
 import sys
-import os
-import struct
 import base64
 import urllib
 from time import sleep
