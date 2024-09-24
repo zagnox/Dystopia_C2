@@ -1,25 +1,24 @@
-# external_c2 framework
+# External C2 Framework
 Python framework for usage with Cobalt Strike's External C2 specification as described in the [spec](https://www.cobaltstrike.com/downloads/externalc2spec.pdf).
 
 The primary design goal is to be a very modular implementation of the external c2 spec that provides enough abstraction to easily implement C2 channels for Cobalt Strike. Ideally, all a user would have to do is create a `transport` module, an `encoder` module, and populate a configuration file to implement a new channel.
 
 
-## S3 Transport Configuration
+## Discord Transport Configuration
 
 You'll need to do several configuration changes before getting up and running. You'll need to:
 
-1. Create an AWS Account if you haven't already (https://portal.aws.amazon.com/billing/signup#/start)
-2. Create an IAM user whose only access is to S3 buckets, and generate secret/access key pair for them (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)
-3. Create an S3 bucket, and note the name.
-4. In `builds/client/s3/s3_client.py`, change `AWS_SECRET_KEY` and `AWS_ACCESS_KEY` to those generated in 2. Change `bucketName` to the bucket created in 3.
-5. In `builds/server/utils/transports/transport_s3.py` make the same changes as you did in 4.
-6. Compile your DLL by: `cd builds/client/s3 && ./compile_dll.sh`
+1. Create a discord account if you haven't already
+2. Create a discord server
+3. Enable discord developer mode and create a discord bot for your discord server.
+4. In `builds/client/discord/discord_client.py`, change `DISCORD_TOKEN` and `COMMAND CHANNEL ID`.
+5. In `builds/server/utils/transports/transport_discord.py` make the same changes as you did in 4.
+6. Compile your DLL by: `cd builds/client/discord && ./compile_dll.sh`
 7. Start your Cobalt Strike Team server and connect withthe Cobalt Strike Client
 8. Load the `start_externalc2.cna` script from your CS client.
-9. Copy this repo to your team server, then execute the server by `cd builds/server/ && ./s3_server.py`
+9. Copy this repo to your team server, then execute the server by `cd builds/server/ && ./discord_server.py`
 10. Distribute your executable from 6 to the host and execute. You should see a connection back from the team server.
 
-Link to video demo: https://youtu.be/wzruD7LPZp0
 
 ## Architecture
 This project consists of three main parts:
@@ -101,10 +100,10 @@ EXTERNAL_C2_ADDR = "127.0.0.1"
 EXTERNAL_C2_PORT = "2222"
 C2_PIPE_NAME = "foobar"
 C2_BLOCK_TIME = 100
-C2_ARCH = "x86"
+C2_ARCH = "x64"
 IDLE_TIME = 5
 ENCODER_MODULE = "encoder_b64url"
-TRANSPORT_MODULE = "transport_gmail"
+TRANSPORT_MODULE = "transport_discord"
 verbose = False
 debug = False
 ```

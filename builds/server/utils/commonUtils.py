@@ -1,7 +1,7 @@
 import socket
 import struct
 import config
-from encoders import encoder_base64, encoder_b64url
+from encoders import encoder_base64
 from transports import transport_discord
 
 def importModule(modName, modType):
