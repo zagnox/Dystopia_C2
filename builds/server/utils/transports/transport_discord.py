@@ -3,9 +3,9 @@ import os
 import asyncio
 from time import sleep  # Importing sleep from time module
 import uuid
+from discord_server import client
 
 # Global client object for Discord
-client = None
 
 # Channel where tasks and responses are communicated
 COMMAND_CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID') # Replace with your command channel ID
@@ -24,7 +24,6 @@ async def sendData(data, beaconId):
     """
     Sends data (task) to the beacon (agent) via a Discord message.
     """
-    global client
     keyName = "{}:{}:{}".format(beaconId, TASK_PREFIX, str(uuid.uuid4()))
     channel = client.get_channel(COMMAND_CHANNEL_ID)
     if channel:
@@ -37,7 +36,6 @@ async def retrieveData(beaconId):
     """
     Retrieves data (response) from the beacon via Discord messages.
     """
-    global client
     keyName = "{}:{}".format(beaconId, RESP_PREFIX)
     channel = client.get_channel(COMMAND_CHANNEL_ID)
     if channel:
@@ -60,7 +58,6 @@ async def fetchNewBeacons():
     Returns:
         list - List of beacon IDs that need to be handled.
     """
-    global client
     beacons = []
     channel = client.get_channel(COMMAND_CHANNEL_ID)
     if channel:
@@ -78,23 +75,6 @@ async def fetchNewBeacons():
         return []
 
 
-def init_discord_client(bot_token):
-    """
-    Initialize the Discord client and log into the Discord server.
-    """
-    global client
-    intents = discord.Intents.default()
-    intents.messages = True
-    intents.message_content = True
-
-    client = discord.Client(intents=intents)
-
-    @client.event
-    async def on_ready():
-        print(f'Logged in as {client.user}')
-    
-    # Run the bot
-    client.run(bot_token)
 
 # For usage in the main server script, you would initialize the client like this:
 # init_discord_client('YOUR_DISCORD_BOT_TOKEN')

@@ -143,8 +143,10 @@ def main():
         print(commonUtils.color("Importing transport module: ") + "%s" % config.TRANSPORT_MODULE)
     importModule(config.TRANSPORT_MODULE, "transport")
 
-    # Start the Discord bot
+    # Start bot
     client.run(DISCORD_TOKEN)
+    
 
 if __name__ == "__main__":
     main()
+    
