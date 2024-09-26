@@ -1,0 +1,6 @@
+.env
+/.venv
+/builds/client/discord/c2file.dll
+/builds/client/discord/discord_client.specs
+/builds/client/discord/dist/
+/builds/client/discord/build

