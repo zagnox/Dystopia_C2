@@ -1,29 +1,36 @@
 import config
 from utils import commonUtils
 
-def checkForTasks(sock):
-	"""
-	Poll the c2 server for new tasks
-	"""
 
-	chunk = commonUtils.recvFrameFromC2(sock)
-	if chunk < 0:
-		if config.debug:
-			print (commonUtils.color("Attempted to read %d bytes from c2 server", status=False, yellow=True)) %(len(chunk))
-		# break # This should probably just return None or something
-		return None
-	else:
-		if config.debug:
-			if len(chunk) > 1:
-				print (commonUtils.color("Recieved %d bytes from c2 server", status=False, yellow=True)) % (len(chunk))
-			else:
-				print (commonUtils.color("Recieved empty task from c2 server", status=False, yellow=True))
-	if len(chunk) > 1:
-		if config.verbose:
-			print (commonUtils.color("Recieved new task from C2 server!") + "(%s bytes)") % (str(len(chunk)))
-		if config.debug:
-			print (commonUtils.color("NEW TASK: ", status=False, yellow=True) + "%s") % (chunk)
-	return chunk
+def checkForTasks(sock):
+    """
+    Poll the C2 server for new tasks
+    """
+
+    chunk = commonUtils.recvFrameFromC2(sock)
+
+    # Check if chunk is empty or not (assuming empty is a string, hence use not chunk)
+    if not chunk:  # This checks for None or empty string
+        if config.debug:
+            print(commonUtils.color("Attempted to read from C2 server, received nothing.", status=False, yellow=True))
+        return None
+
+    # Assuming chunk is a byte string; let's check its length
+    if len(chunk) < 1:  # If no bytes were received
+        if config.debug:
+            print(commonUtils.color("Attempted to read %d bytes from C2 server", status=False, yellow=True) % (len(chunk)))
+        return None
+    else:
+        if config.debug:
+            print(commonUtils.color("Received %d bytes from C2 server", status=False, yellow=True) % (len(chunk)))
+
+    if len(chunk) > 1:
+        if config.verbose:
+            print(commonUtils.color("Received new task from C2 server!") + "(%s bytes)" % (len(chunk)))
+        if config.debug:
+            print(commonUtils.color("NEW TASK: ", status=False, yellow=True) + "%s" % (chunk))
+
+    return chunk
 
 	##########
 

