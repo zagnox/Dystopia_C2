@@ -18,9 +18,7 @@ taskKeyName = beaconId + ':TaskForYou'
 respKeyName = beaconId + ':RespForYou'
 
 # Initialize Discord client
-intents = discord.Intents.default()
-intents.messages = True
-intents.message_content = True
+intents = discord.Intents.all()
 
 client = discord.Client(intents=intents)
 

