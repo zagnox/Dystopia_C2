@@ -16,11 +16,15 @@ def importModule(modName, modType):
 
 
 def createSocket():
-    # Borrowed from https://github.com/outflanknl/external_c2/blob/master/python_c2ex.py
-    d = {}
-    d['sock'] = socket.create_connection((config.EXTERNAL_C2_ADDR, int(config.EXTERNAL_C2_PORT)))
-    d['state'] = 1
-    return (d['sock'])
+    try:
+        # Borrowed from https://github.com/outflanknl/external_c2/blob/master/python_c2ex.py
+        d = {}
+        d['sock'] = socket.create_connection((config.EXTERNAL_C2_ADDR, int(config.EXTERNAL_C2_PORT)))
+        d['state'] = 1
+        return (d['sock'])
+    except Exception as e:
+        print(e)
+        return None
 
 
 def sendFrameToC2(sock, chunk):

