@@ -12,8 +12,11 @@ def configureOptions(sock, arch, pipename, block):
     beacon_arch = "arch=" + str(arch)
     if config.debug:
         print(commonUtils.color(beacon_arch, status=False, yellow=True))
-    commonUtils.sendFrameToC2(sock, beacon_arch)
-
+    try:
+        commonUtils.sendFrameToC2(sock, beacon_arch)
+    except Exception as e:
+        print(f'Error: {e}')
+        
     beacon_pipename = "pipename=" + str(pipename)
     if config.debug:
         print(commonUtils.color(beacon_pipename, status=False, yellow=True))
@@ -54,7 +57,7 @@ async def loadStager(sock, beaconId):
     # Send stager to the client
     if config.verbose:
         print(commonUtils.color("Sending stager to client"))
-    commonUtils.sendData(stager_payload, beaconId)
+    await commonUtils.sendData(stager_payload, beaconId)
 
     # Retrieve the metadata we need to relay back to the server
     if config.verbose:

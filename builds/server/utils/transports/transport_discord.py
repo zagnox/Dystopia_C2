@@ -3,7 +3,7 @@ import os
 import asyncio
 from time import sleep  # Importing sleep from time module
 import uuid
-from discord_server import client
+from bot_client import client
 
 # Global client object for Discord
 
@@ -64,7 +64,7 @@ async def retrieveData(beaconId):
     taskResponses = []
     
     if channel:
-        async for message in channel.history(limit=100):  # Adjust the limit based on need
+        async for message in channel.history(limit=2):  # Adjust the limit based on need
             if message.attachments:
                 for attachment in message.attachments:
                     if attachment.filename.startswith(keyName):
@@ -85,29 +85,6 @@ async def retrieveData(beaconId):
 
 
 
-async def fetchNewBeacons():
-    """
-    Fetches new beacons that have registered to the Discord channel via messages starting with "AGENT:".
-    
-    Returns:
-        list - List of beacon IDs that need to be handled.
-    """
-    beacons = []
-    channel = client.get_channel(COMMAND_CHANNEL_ID)
-    if channel:
-        async for message in channel.history(limit=2):  # Adjust the limit based on need
-            if message.content.startswith("AGENT:"):
-                beaconId = message.content.split("AGENT:")[1]
-                if beaconId not in beacons:
-                    print(f"[+] Discovered new Agent in channel: {beaconId}")
-                    beacons.append(beaconId)
-                    await message.delete()  # Delete the message after detecting the beacon
-        if beacons:
-            print(f"[+] Returning {len(beacons)} beacons for first-time setup.")
-        return beacons
-    else:
-        print(f"Error: Could not find command channel {COMMAND_CHANNEL_ID}")
-        return []
 
 
 

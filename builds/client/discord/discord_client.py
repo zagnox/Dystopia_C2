@@ -10,7 +10,7 @@ import uuid
 
 # Discord bot token
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-CHANNEL_ID = os.getenv('COMMAND_CHANNEL_ID')
+CHANNEL_ID = int(os.getenv('COMMAND_CHANNEL_ID'))
 
 beaconId = str(uuid.uuid4())
 taskKeyName = beaconId + ':TaskForYou'
